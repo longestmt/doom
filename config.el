@@ -41,7 +41,7 @@
 
 (setq org-log-done 'time)
 
-(setq org-archive-location "~/org/done.org::")
+(setq org-archive-location "~/org/done.org::datetree/")
 
 (custom-theme-set-faces!
 'doom-one

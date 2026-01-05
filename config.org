@@ -101,11 +101,10 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 #+begin_src emacs-lisp
 (setq org-log-done 'time)
 #+end_src
-*** Move Archive Location to done.org
+*** Move Archive Location to done.org (sorted by date)
 #+begin_src emacs-lisp
-(setq org-archive-location "~/org/done.org::")
+(setq org-archive-location "~/org/done.org::datetree/")
 #+end_src
-
 
 ** Headers
 This sets the font size for each Org header level.  Having variable font sizes in an Org outline makes it visually appealing and more readable.
