@@ -39,6 +39,10 @@
       (markdown-mode)
     (markdown-view-mode)))
 
+(setq org-log-done 'time)
+
+(setq org-archive-location "~/org/done.org::")
+
 (custom-theme-set-faces!
 'doom-one
 '(org-level-8 :inherit outline-3 :height 1.0)

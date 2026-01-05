@@ -10,6 +10,7 @@
   - [[#toggle-markdown-view][Toggle Markdown View]]
 - [[#org][Org]]
   - [[#basic-settings][Basic Settings]]
+  - [[#task-management][Task Management]]
   - [[#headers-1][Headers]]
   - [[#journal][Journal]]
   - [[#keybindings-1][Keybindings]]
@@ -94,6 +95,17 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 # (add-hook 'org-mode-hook #'hl-todo-mode)
 
 # #+end_src
+
+** Task Management
+*** Add Timestamp to Completed Tasks
+#+begin_src emacs-lisp
+(setq org-log-done 'time)
+#+end_src
+*** Move Archive Location to done.org
+#+begin_src emacs-lisp
+(setq org-archive-location "~/org/done.org::")
+#+end_src
+
 
 ** Headers
 This sets the font size for each Org header level.  Having variable font sizes in an Org outline makes it visually appealing and more readable.
