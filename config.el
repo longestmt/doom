@@ -43,32 +43,142 @@
 
 (setq org-archive-location "~/org/done.org::datetree/")
 
-(custom-theme-set-faces!
-'doom-one
-'(org-level-8 :inherit outline-3 :height 1.0)
-'(org-level-7 :inherit outline-3 :height 1.0)
-'(org-level-6 :inherit outline-3 :height 1.1)
-'(org-level-5 :inherit outline-3 :height 1.15)
-'(org-level-4 :inherit outline-3 :height 1.2)
-'(org-level-3 :inherit outline-3 :height 1.25)
-'(org-level-2 :inherit outline-2 :height 1.3)
-'(org-level-1 :inherit outline-1 :height 1.35)
-'(org-document-title  :height 1.8 :bold t :underline nil))
+;; Mark tasks with a CLOSED timestamp on DONE
+(after! org
+(setq org-log-done 'time)
 
-(after! org-journal
-  (setq org-journal-dir "~/org/"
-        org-journal-file-type 'yearly
-        org-journal-file-format "journal.org"
-        org-journal-date-prefix "* "
-        org-journal-date-format "%Y-%m-%d %A"
-        org-journal-time-prefix "** %H:%M "
-        org-journal-enable-agenda-integration t))
+;; Capture templates
+(setq org-capture-templates
+      '(("t" "Todo" entry
+         (file+headline "~/org/inbox.org" "Inbox")
+         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:CAPTURED: %a\n:END:\n%?")
 
-(after! org-journal
-  (map! :leader
-        :desc "New journal entry"
-        "n j" #'org-journal-new-entry))
+        ("e" "Event" entry
+         (file+headline "~/org/calendar.org" "Events")
+         "* %^{Event}\n%^{SCHEDULED}T\n:PROPERTIES:\n:CREATED: %U\n:CAPTURED: %a\n:CONTACT: %(org-capture-ref-link \"~/org/roam/contacts.org\")\n:END:\n%?")
 
-(setq display-line-numbers-type t)   ;; Turn line numbers on
-(setq confirm-kill-emacs nil)        ;; Don't confirm on exit
-(setq initial-buffer-choice "~/org/inbox.org") ;; Inbox is initial buffer
+        ("d" "Deadline" entry
+         (file+headline "~/org/calendar.org" "Deadlines")
+         "* TODO %^{Task}\nDEADLINE: %^{Deadline}T\n:PROPERTIES:\n:CREATED: %U\n:CAPTURED: %a\n:END:\n%?")
+
+        ("b" "Bookmark" entry
+        (file+headline "~/org/bookmarks.org" "Inbox")
+        "** [[%^{URL}][%^{Title}]]\n:PROPERTIES:\n:CREATED: %U\n:TAGS: %(org-capture-bookmark-tags)\n:END:\n\n"
+        :empty-lines 0)
+
+        ("c" "Contact" entry
+         (file "~/org/roam/contacts.org")
+"* %^{Name} %^g
+:PROPERTIES:
+:ID: %(org-id-new)
+:CREATED: %U
+:CAPTURED: %a
+:EMAIL: %^{Email}
+:PHONE: %^{Phone}
+:BIRTHDAY: %^{Birthday (use <YYYY-MM-DD +1y> format)}t
+:LOCATION: %^{Address}
+:LAST_CONTACTED: %U
+:END:
+%?"
+ :empty-lines 1)
+
+        ("n" "Note" entry
+         (file+headline "~/org/notes.org" "Inbox")
+         "* [%<%Y-%m-%d %a>] %^{Title}\n:PROPERTIES:\n:CREATED: %U\n:CAPTURED: %a\n:END:\n%?"
+         :prepend t)))
+
+(defun org-capture-bookmark-tags ()
+  "Get tags from existing bookmarks and prompt for tags with completion."
+  (save-window-excursion
+    (let ((tags-list '()))
+      ;; Collect existing tags
+      (with-current-buffer (find-file-noselect "~/org/bookmarks.org")
+        (save-excursion
+          (goto-char (point-min))
+          (while (re-search-forward "^:TAGS:\\s-*\\(.+\\)$" nil t)
+            (let ((tag-string (match-string 1)))
+              (dolist (tag (split-string tag-string "[,;]" t "[[:space:]]"))
+                (push (string-trim tag) tags-list))))))
+      ;; Remove duplicates and sort
+      (setq tags-list (sort (delete-dups tags-list) 'string<))
+      ;; Prompt user with completion
+      (let ((selected-tags (completing-read-multiple "Tags (comma-separated): " tags-list)))
+        ;; Return as a comma-separated string
+        (mapconcat 'identity selected-tags ", ")))))
+
+;; Helper function to select and link a contact
+(defun org-capture-ref-link (file)
+  "Create a link to a contact in contacts.org"
+  (let* ((headlines (org-map-entries
+                     (lambda ()
+                       (cons (org-get-heading t t t t)
+                             (org-id-get-create)))
+                     t
+                     (list file)))
+         (contact (completing-read "Contact: "
+                                   (mapcar #'car headlines)))
+         (id (cdr (assoc contact headlines))))
+    (format "[[id:%s][%s]]" id contact))))
+
+;; Set archive location to done.org under current date
+;; (defun my/archive-done-task ()
+;;   "Archive current task to done.org under today's date"
+;;   (interactive)
+;;   (let* ((date-header (format-time-string "%Y-%m-%d %A"))
+;;          (archive-file (expand-file-name "~/org/done.org"))
+;;          (location (format "%s::* %s" archive-file date-header)))
+;;     ;; Only archive if not a habit
+;;     (unless (org-is-habit-p)
+;;       ;; Add COMPLETED property if it doesn't exist
+;;       (org-set-property "COMPLETED" (format-time-string "[%Y-%m-%d %a %H:%M]"))
+;;       ;; Set archive location and archive
+;;       (setq org-archive-location location)
+;;       (org-archive-subtree))))
+
+;; Automatically archive when marked DONE, except for habits
+;; (add-hook 'org-after-todo-state-change-hook
+;;           (lambda ()
+;;             (when (and (string= org-state "DONE")
+;;                        (not (org-is-habit-p)))
+;;               (my/archive-done-task))))
+
+;; Optional key binding if you ever need to archive manually
+(after! org
+  (map! :map org-mode-map
+        :localleader
+        "a" #'my/archive-done-task))
+
+;; Configure habit graph display
+(setq org-habit-show-habits-only-for-today t)  ; or nil to show all days
+(setq org-habit-graph-column 50)  ; adjust based on your screen
+
+(setq org-agenda-remove-tags t)
+(setq org-agenda-block-separator 32)
+(setq org-agenda-custom-commands
+      '(("d" "Dashboard"
+         ((tags "PRIORITY=\"A\""
+                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                 (org-agenda-overriding-header "\n HIGHEST PRIORITY")
+                 (org-agenda-prefix-format "   %i %?-2 t%s")))
+
+          (agenda ""
+                  ((org-agenda-start-day "+0d")
+                   (org-agenda-span 3)  ; Show 3 days for better habit tracking
+                   (org-agenda-time)
+                   (org-agenda-remove-tags t)
+                   (org-agenda-todo-keyword-format "")
+                   (org-agenda-scheduled-leaders '("" ""))
+                   (org-agenda-current-time-string "ᐊ┈┈┈┈┈┈┈┈┈ NOW")
+                   (org-agenda-overriding-header "\n TODAY'S SCHEDULE & HABITS")
+                   (org-agenda-prefix-format "   %i %?-2 t%s")))
+
+          (tags-todo "-STYLE=\"habit\""  ; This still excludes habits from TODO list
+                     ((org-agenda-overriding-header "\n ALL TODO")
+                      (org-agenda-sorting-strategy '(priority-down))
+                      (org-agenda-remove-tags t)
+                      (org-agenda-prefix-format "   %i %?-2 t%s")))))))
+
+(defun my/org-agenda-dashboard ()
+  "Open the custom org-agenda dashboard."
+  (interactive)
+  (org-agenda nil "d"))

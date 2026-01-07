@@ -2,21 +2,27 @@
 
 * Table of Contents :toc:
 - [[#doom-settings][Doom Settings]]
+  - [[#theming][Theming]]
 - [[#keybindings][Keybindings]]
   - [[#comment-line][Comment Line]]
   - [[#toggle-bindings][Toggle bindings]]
 - [[#markdown][Markdown]]
   - [[#headers][Headers]]
   - [[#toggle-markdown-view][Toggle Markdown View]]
-- [[#org][Org]]
-  - [[#basic-settings][Basic Settings]]
+- [[#org-setup][Org Setup]]
   - [[#task-management][Task Management]]
-  - [[#headers-1][Headers]]
-  - [[#journal][Journal]]
-  - [[#keybindings-1][Keybindings]]
+  - [[#capture-templates][Capture Templates]]
+- [[#org-agenda][Org-Agenda]]
+  - [[#calendar][Calendar]]
+  - [[#contacts][Contacts]]
+- [[#org-roam][Org-Roam]]
+  - [[#org-keybinds][Org Keybinds]]
+  - [[#custom-function-for-image-insertion][Custom function for image insertion]]
 - [[#sensible-defaults][Sensible Defaults]]
+- [[#keybindings-1][Keybindings]]
 
 * Doom Settings
+** Theming
 #+begin_src emacs-lisp
 ;; (setq doom-theme 'compline)
 (add-to-list 'custom-theme-load-path "~/.config/doom/themes/")
@@ -85,16 +91,7 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 
 #+end_src
 
-* Org
-** Basic Settings
-# #+begin_src emacs-lisp
-
-# ;; (setq org-directory "~/nc/Org/")
-# (setq org-modern-table-vertical 1)
-# (setq org-modern-table t)
-# (add-hook 'org-mode-hook #'hl-todo-mode)
-
-# #+end_src
+* Org Setup
 
 ** Task Management
 *** Add Timestamp to Completed Tasks
@@ -106,52 +103,401 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 (setq org-archive-location "~/org/done.org::datetree/")
 #+end_src
 
-** Headers
-This sets the font size for each Org header level.  Having variable font sizes in an Org outline makes it visually appealing and more readable.
+** Capture Templates
 #+begin_src emacs-lisp
-(custom-theme-set-faces!
-'doom-one
-'(org-level-8 :inherit outline-3 :height 1.0)
-'(org-level-7 :inherit outline-3 :height 1.0)
-'(org-level-6 :inherit outline-3 :height 1.1)
-'(org-level-5 :inherit outline-3 :height 1.15)
-'(org-level-4 :inherit outline-3 :height 1.2)
-'(org-level-3 :inherit outline-3 :height 1.25)
-'(org-level-2 :inherit outline-2 :height 1.3)
-'(org-level-1 :inherit outline-1 :height 1.35)
-'(org-document-title  :height 1.8 :bold t :underline nil))
+;; Mark tasks with a CLOSED timestamp on DONE
+(after! org
+(setq org-log-done 'time)
 
+;; Capture templates
+(setq org-capture-templates
+      '(("t" "Todo" entry
+         (file+headline "~/org/inbox.org" "Inbox")
+         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:CAPTURED: %a\n:END:\n%?")
+
+        ("e" "Event" entry
+         (file+headline "~/org/calendar.org" "Events")
+         "* %^{Event}\n%^{SCHEDULED}T\n:PROPERTIES:\n:CREATED: %U\n:CAPTURED: %a\n:CONTACT: %(org-capture-ref-link \"~/org/roam/contacts.org\")\n:END:\n%?")
+
+        ("d" "Deadline" entry
+         (file+headline "~/org/calendar.org" "Deadlines")
+         "* TODO %^{Task}\nDEADLINE: %^{Deadline}T\n:PROPERTIES:\n:CREATED: %U\n:CAPTURED: %a\n:END:\n%?")
+
+        ("b" "Bookmark" entry
+        (file+headline "~/org/bookmarks.org" "Inbox")
+        "** [[%^{URL}][%^{Title}]]\n:PROPERTIES:\n:CREATED: %U\n:TAGS: %(org-capture-bookmark-tags)\n:END:\n\n"
+        :empty-lines 0)
+
+        ("c" "Contact" entry
+         (file "~/org/roam/contacts.org")
+"* %^{Name} %^g
+:PROPERTIES:
+:ID: %(org-id-new)
+:CREATED: %U
+:CAPTURED: %a
+:EMAIL: %^{Email}
+:PHONE: %^{Phone}
+:BIRTHDAY: %^{Birthday (use <YYYY-MM-DD +1y> format)}t
+:LOCATION: %^{Address}
+:LAST_CONTACTED: %U
+:END:
+%?"
+ :empty-lines 1)
+
+        ("n" "Note" entry
+         (file+headline "~/org/notes.org" "Inbox")
+         "* [%<%Y-%m-%d %a>] %^{Title}\n:PROPERTIES:\n:CREATED: %U\n:CAPTURED: %a\n:END:\n%?"
+         :prepend t)))
+
+(defun org-capture-bookmark-tags ()
+  "Get tags from existing bookmarks and prompt for tags with completion."
+  (save-window-excursion
+    (let ((tags-list '()))
+      ;; Collect existing tags
+      (with-current-buffer (find-file-noselect "~/org/bookmarks.org")
+        (save-excursion
+          (goto-char (point-min))
+          (while (re-search-forward "^:TAGS:\\s-*\\(.+\\)$" nil t)
+            (let ((tag-string (match-string 1)))
+              (dolist (tag (split-string tag-string "[,;]" t "[[:space:]]"))
+                (push (string-trim tag) tags-list))))))
+      ;; Remove duplicates and sort
+      (setq tags-list (sort (delete-dups tags-list) 'string<))
+      ;; Prompt user with completion
+      (let ((selected-tags (completing-read-multiple "Tags (comma-separated): " tags-list)))
+        ;; Return as a comma-separated string
+        (mapconcat 'identity selected-tags ", ")))))
+
+;; Helper function to select and link a contact
+(defun org-capture-ref-link (file)
+  "Create a link to a contact in contacts.org"
+  (let* ((headlines (org-map-entries
+                     (lambda ()
+                       (cons (org-get-heading t t t t)
+                             (org-id-get-create)))
+                     t
+                     (list file)))
+         (contact (completing-read "Contact: "
+                                   (mapcar #'car headlines)))
+         (id (cdr (assoc contact headlines))))
+    (format "[[id:%s][%s]]" id contact))))
+
+;; Set archive location to done.org under current date
+;; (defun my/archive-done-task ()
+;;   "Archive current task to done.org under today's date"
+;;   (interactive)
+;;   (let* ((date-header (format-time-string "%Y-%m-%d %A"))
+;;          (archive-file (expand-file-name "~/org/done.org"))
+;;          (location (format "%s::* %s" archive-file date-header)))
+;;     ;; Only archive if not a habit
+;;     (unless (org-is-habit-p)
+;;       ;; Add COMPLETED property if it doesn't exist
+;;       (org-set-property "COMPLETED" (format-time-string "[%Y-%m-%d %a %H:%M]"))
+;;       ;; Set archive location and archive
+;;       (setq org-archive-location location)
+;;       (org-archive-subtree))))
+
+;; Automatically archive when marked DONE, except for habits
+;; (add-hook 'org-after-todo-state-change-hook
+;;           (lambda ()
+;;             (when (and (string= org-state "DONE")
+;;                        (not (org-is-habit-p)))
+;;               (my/archive-done-task))))
+
+;; Optional key binding if you ever need to archive manually
+(after! org
+  (map! :map org-mode-map
+        :localleader
+        "a" #'my/archive-done-task))
 #+end_src
 
-** Journal
-- Single journal file: ~/org/journal.org
-- One top-level heading per day
-- Timestamped entries as subheadings
-- Entries appear in the agenda
+
+* Org-Agenda
 #+begin_src emacs-lisp
-(after! org-journal
-  (setq org-journal-dir "~/org/"
-        org-journal-file-type 'yearly
-        org-journal-file-format "journal.org"
-        org-journal-date-prefix "* "
-        org-journal-date-format "%Y-%m-%d %A"
-        org-journal-time-prefix "** %H:%M "
-        org-journal-enable-agenda-integration t))
-#+end_src
+;; Configure habit graph display
+(setq org-habit-show-habits-only-for-today t)  ; or nil to show all days
+(setq org-habit-graph-column 50)  ; adjust based on your screen
 
-** Keybindings
+(setq org-agenda-remove-tags t)
+(setq org-agenda-block-separator 32)
+(setq org-agenda-custom-commands
+      '(("d" "Dashboard"
+         ((tags "PRIORITY=\"A\""
+                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                 (org-agenda-overriding-header "\n HIGHEST PRIORITY")
+                 (org-agenda-prefix-format "   %i %?-2 t%s")))
+
+          (agenda ""
+                  ((org-agenda-start-day "+0d")
+                   (org-agenda-span 3)  ; Show 3 days for better habit tracking
+                   (org-agenda-time)
+                   (org-agenda-remove-tags t)
+                   (org-agenda-todo-keyword-format "")
+                   (org-agenda-scheduled-leaders '("" ""))
+                   (org-agenda-current-time-string "ᐊ┈┈┈┈┈┈┈┈┈ NOW")
+                   (org-agenda-overriding-header "\n TODAY'S SCHEDULE & HABITS")
+                   (org-agenda-prefix-format "   %i %?-2 t%s")))
+
+          (tags-todo "-STYLE=\"habit\""  ; This still excludes habits from TODO list
+                     ((org-agenda-overriding-header "\n ALL TODO")
+                      (org-agenda-sorting-strategy '(priority-down))
+                      (org-agenda-remove-tags t)
+                      (org-agenda-prefix-format "   %i %?-2 t%s")))))))
+
+(defun my/org-agenda-dashboard ()
+  "Open the custom org-agenda dashboard."
+  (interactive)
+  (org-agenda nil "d"))
+#+end_src
+** Calendar
 #+begin_src emacs-lisp
-(after! org-journal
-  (map! :leader
-        :desc "New journal entry"
-        "n j" #'org-journal-new-entry))
-#+end_src
+(defun +calendar/open-calendar ()
+  "Open calfw calendar with org integration."
+  (interactive)
+  (require 'calfw)
+  (require 'calfw-org)
+
+  ;; Apply Compline faces
+  (custom-set-faces!
+   '(cfw:face-title :foreground "#e0dcd4" :weight bold :height 1.2)
+   '(cfw:face-header :foreground "#b8c4b8" :weight bold)
+   '(cfw:face-sunday :foreground "#cdacac" :weight bold)
+   '(cfw:face-saturday :foreground "#b4c0c8" :weight bold)
+   '(cfw:face-grid :foreground "#282c34")
+   '(cfw:face-today :background "#171a1e" :weight bold)
+   '(cfw:face-select :background "#282c34" :foreground "#f0efeb")
+   '(cfw:face-schedule :foreground "#b8c4b8")
+   '(cfw:face-deadline :foreground "#cdacac"))
+
+  (calfw-org-open-calendar))
+
+;; Prevent byte-compilation of this function
+(put '+calendar/open-calendar 'byte-compile 'byte-compile-file-form-defmumble)
+#+end_src emacs-lisp
+
+** Contacts
+#+begin_src emacs-lisp
+(after! org
+  (defvar my/contacts-file "~/org/roam/contacts.org")
+
+  (defun my/contacts-get-emails ()
+    "Extract all emails from contacts.org."
+    (let (contacts)
+      (with-current-buffer (find-file-noselect my/contacts-file)
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (while (re-search-forward "^\\*+ \\(.+\\)$" nil t)
+           (let ((name (match-string 1))
+                 (email (org-entry-get (point) "EMAIL")))
+             (when email
+               (dolist (addr (split-string email "," t " "))
+                 (push (cons name (string-trim addr)) contacts)))))))
+      (nreverse contacts)))
+
+  (defun my/contacts-complete ()
+    "Complete email addresses from contacts.org."
+    (let* ((end (point))
+           (start (save-excursion
+                    (skip-chars-backward "^:,; \t\n")
+                    (point)))
+           (contacts (my/contacts-get-emails))
+           (collection (mapcar
+                       (lambda (contact)
+                         (format "%s <%s>" (car contact) (cdr contact)))
+                       contacts)))
+      (list start end collection :exclusive 'no)))
+
+  (add-hook 'message-mode-hook
+            (lambda ()
+              (setq-local completion-at-point-functions
+                          (cons 'my/contacts-complete
+                                completion-at-point-functions)))))
+
+(after! mu4e
+  (setq mu4e-compose-complete-addresses nil)
+
+  (defun my/update-last-contacted ()
+    (when (and (derived-mode-p 'mu4e-compose-mode)
+               mu4e-compose-parent-message)
+      (when-let* ((from (mu4e-message-field mu4e-compose-parent-message :from))
+                  (email (if (stringp from) from (cdar from))))
+        (when (stringp email)
+          (with-current-buffer (find-file-noselect my/contacts-file)
+            (save-excursion
+              (goto-char (point-min))
+              (when (search-forward email nil t)
+                (org-back-to-heading)
+                (org-set-property "LAST_CONTACTED"
+                                (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                (save-buffer))))))))
+
+  (add-hook 'mu4e-compose-mode-hook #'my/update-last-contacted))
+#+end_src emacs-lisp
+
+* Org-Roam
+#+begin_src emacs-lisp
+(use-package! org-roam
+  :defer t
+  :commands (org-roam-node-find
+             org-roam-node-insert
+             org-roam-dailies-goto-today
+             org-roam-buffer-toggle
+             org-roam-db-sync
+             org-roam-capture)  ; Add this
+  :init
+  (setq org-roam-directory "~/org/roam"
+        org-roam-database-connector 'sqlite-builtin
+        org-roam-db-location (expand-file-name "org-roam.db" org-roam-directory)
+        org-roam-v2-ack t)
+
+  :config
+  ;; Don't sync on startup, only when explicitly needed
+  (setq org-roam-db-update-on-save nil)
+
+  ;; Create directory if needed
+  (unless (file-exists-p org-roam-directory)
+    (make-directory org-roam-directory t))
+
+  ;; Only enable autosync AFTER first use
+  (add-hook 'org-roam-find-file-hook
+            (lambda ()
+              (unless org-roam-db-autosync-mode
+                (org-roam-db-autosync-mode 1))))
+
+  ;; CAPTURE TEMPLATES - Human readable filenames
+  (setq org-roam-capture-templates
+        '(("d" "default" plain "%?"
+           :target (file+head "${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: \n\n")
+           :unnarrowed t)
+
+          ("c" "concept" plain "%?"
+           :target (file+head "concepts/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :concept:\n\n")
+           :unnarrowed t)
+
+          ("C" "Contact" plain
+          "* Contact Info
+:PROPERTIES:
+:EMAIL: %^{Email}
+:PHONE: %^{Phone}
+:BIRTHDAY: %^{Birthday (YYYY-MM-DD +1y)}t
+:LOCATION: %^{Location}
+:LAST_CONTACTED: %U
+:END:
+
+ ** Communications
+
+ ** Notes
+ %?"
+ :target (file+head "contacts/${slug}.org"
+ "#+title: ${title}
+ #+filetags: %^{Tags}
+ #+created: %U
+ ")
+ :unnarrowed t)
 
 
+          ("b" "book" plain "%?"
+           :target (file+head "books/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+author: \n#+filetags: :book:\n\n* Summary\n\n* Key Ideas\n\n* Quotes\n\n* Related\n\n")
+           :unnarrowed t)
+
+          ("p" "person" plain "%?"
+           :target (file+head "people/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :person:\n\n* Background\n\n* Key Ideas\n\n* Works\n\n")
+           :unnarrowed t)
+
+          ("t" "tech" plain "%?"
+           :target (file+head "tech/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :tech:\n\n")
+           :unnarrowed t)
+
+          ("T" "theology" plain "%?"
+           :target (file+head "faith/theology/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :theology:faith:\n\n* Doctrine\n\n* Scripture\n\n* Tradition\n\n* Application\n\n")
+           :unnarrowed t)
+
+          ("w" "writing" plain "%?"
+           :target (file+head "writing/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :writing:draft:\n\n")
+           :unnarrowed t)
+
+          ("P" "project" plain "%?"
+           :target (file+head "projects/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :project:private:\n\n* Overview\n\n* Goals\n\n* Status\n\n* Notes\n\n")
+           :unnarrowed t)))
+
+  ;; DAILIES - Clean date format
+  (setq org-roam-dailies-directory "daily/"
+        org-roam-dailies-capture-templates
+        '(("d" "default" entry "* %<%H:%M>: %?"
+           :target (file+head "%<%Y-%m-%d>.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: %<%Y-%m-%d %A>\n#+filetags: :daily:\n\n"))))
+
+  ;; Enable completion everywhere (for linking)
+  (setq org-roam-completion-everywhere t))
+
+;; org-roam-ui
+(use-package! org-roam-ui
+  :commands (org-roam-ui-mode org-roam-ui-open)
+  :after org-roam
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t
+        org-roam-ui-open-on-start nil))
+#+end_src emacs-lisp
+
+** Org Keybinds
+#+begin_src emacs-lisp
+;; Keybinds for org mode
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-c C-i") #'my/org-insert-image)
+  (define-key org-mode-map (kbd "C-c e") #'org-set-effort)
+  (define-key org-mode-map (kbd "C-c i") #'org-clock-in)
+  (define-key org-mode-map (kbd "C-c o") #'org-clock-out))
+#+end_src emacs-lisp
+
+** Custom function for image insertion
+#+begin_src emacs-lisp
+;; Insert image into org from selection
+(defun my/org-insert-image ()
+  "Select and insert an image into org file."
+  (interactive)
+  (let ((selected-file (read-file-name "Select image: " "~/Pictures/" nil t)))
+    (when selected-file
+      (insert (format "[[file:%s]]\n" selected-file))
+      (org-display-inline-images))))
+#+end_src emacs-lisp
 * Sensible Defaults
 #+begin_src emacs-lisp
 (setq display-line-numbers-type t)   ;; Turn line numbers on
 (setq confirm-kill-emacs nil)        ;; Don't confirm on exit
 (setq initial-buffer-choice "~/org/inbox.org") ;; Inbox is initial buffer
 
-#+end_src
+#+end_src emacs-lisp
+
+* Keybindings
+
+#+begin_src emacs-lisp
+;; zoom in/out like we do everywhere else.
+(global-set-key (kbd "C-=") 'text-scale-increase)
+(global-set-key (kbd "C--") 'text-scale-decrease)
+#+end_src emacs-lisp
+
+#+begin_src emacs-lisp
+;; Evil-escape sequence
+(setq-default evil-escape-key-sequence "kj")
+(setq-default evil-escape-delay 0.1)
+
+; Don't move cursor back when exiting insert mode
+(setq evil-move-cursor-back nil)
+;; granular undo with evil mode
+(setq evil-want-fine-undo t)
+;; Enable paste from system clipboard with C-v in insert mode
+(evil-define-key 'insert global-map (kbd "C-v") 'clipboard-yank)
+#+end_src emacs-lisp
+
+#+begin_src emacs-lisp
+#+end_src emacs-lisp
