@@ -3,9 +3,6 @@
 * Table of Contents :toc:
 - [[#doom-settings][Doom Settings]]
   - [[#theming][Theming]]
-- [[#keybindings][Keybindings]]
-  - [[#comment-line][Comment Line]]
-  - [[#toggle-bindings][Toggle bindings]]
 - [[#markdown][Markdown]]
   - [[#headers][Headers]]
   - [[#toggle-markdown-view][Toggle Markdown View]]
@@ -19,7 +16,13 @@
   - [[#org-keybinds][Org Keybinds]]
   - [[#custom-function-for-image-insertion][Custom function for image insertion]]
 - [[#sensible-defaults][Sensible Defaults]]
-- [[#keybindings-1][Keybindings]]
+- [[#keybindings][Keybindings]]
+  - [[#comment-line][Comment Line]]
+  - [[#toggle-bindings][Toggle bindings]]
+  - [[#zoom-inout][Zoom In/Out]]
+  - [[#evil-mode-tweaks][Evil mode tweaks]]
+- [[#custom-functions-and-templates][Custom Functions and templates]]
+  - [[#functions][Functions]]
 
 * Doom Settings
 ** Theming
@@ -28,36 +31,6 @@
 (add-to-list 'custom-theme-load-path "~/.config/doom/themes/")
 (load-theme 'compline t)
 (setq doom-font (font-spec :family "Menlo" :size 15))
-
-#+end_src
-
-* Keybindings
-
-** Comment Line
-#+begin_src emacs-lisp
-(map! :leader
-      :desc "Comment line" "-" #'comment-line)
-
-#+end_src
-
-** Toggle bindings
-#+begin_src emacs-lisp
-(map! :leader
-      (:prefix ("t" . "toggle")
-       :desc "Toggle eshell split"            "e" #'+eshell/toggle
-       :desc "Toggle line highlight in frame" "h" #'hl-line-mode
-       :desc "Toggle line highlight globally" "H" #'global-hl-line-mode
-       :desc "Toggle line numbers"            "l" #'doom/toggle-line-numbers
-       :desc "Toggle markdown-view-mode"      "m" #'dt/toggle-markdown-view-mode
-       :desc "Toggle truncate lines"          "t" #'toggle-truncate-lines
-       :desc "Toggle treemacs"                "T" #'+treemacs/toggle
-       :desc "Toggle vterm split"             "v" #'+vterm/toggle))
-
-(setq display-line-numbers-type t)
-(map! :leader
-      (:prefix ("o" . "open here")
-       :desc "Open eshell here"    "e" #'+eshell/here
-       :desc "Open vterm here"     "v" #'+vterm/here))
 
 #+end_src
 
@@ -480,12 +453,42 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 
 * Keybindings
 
+** Comment Line
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Comment line" "-" #'comment-line)
+
+#+end_src
+
+** Toggle bindings
+#+begin_src emacs-lisp
+(map! :leader
+      (:prefix ("t" . "toggle")
+       :desc "Toggle eshell split"            "e" #'+eshell/toggle
+       :desc "Toggle line highlight in frame" "h" #'hl-line-mode
+       :desc "Toggle line highlight globally" "H" #'global-hl-line-mode
+       :desc "Toggle line numbers"            "l" #'doom/toggle-line-numbers
+       :desc "Toggle markdown-view-mode"      "m" #'dt/toggle-markdown-view-mode
+       :desc "Toggle truncate lines"          "t" #'toggle-truncate-lines
+       :desc "Toggle treemacs"                "T" #'+treemacs/toggle
+       :desc "Toggle vterm split"             "v" #'+vterm/toggle))
+
+(setq display-line-numbers-type t)
+(map! :leader
+      (:prefix ("o" . "open here")
+       :desc "Open eshell here"    "e" #'+eshell/here
+       :desc "Open vterm here"     "v" #'+vterm/here))
+
+#+end_src
+
+** Zoom In/Out
 #+begin_src emacs-lisp
 ;; zoom in/out like we do everywhere else.
 (global-set-key (kbd "C-=") 'text-scale-increase)
 (global-set-key (kbd "C--") 'text-scale-decrease)
 #+end_src emacs-lisp
 
+** Evil mode tweaks
 #+begin_src emacs-lisp
 ;; Evil-escape sequence
 (setq-default evil-escape-key-sequence "kj")
@@ -498,6 +501,35 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 ;; Enable paste from system clipboard with C-v in insert mode
 (evil-define-key 'insert global-map (kbd "C-v") 'clipboard-yank)
 #+end_src emacs-lisp
+
+* Custom Functions and templates
+I have various functions in my lisp directory for creating pomodoros, refiling done tasks to my global done.org file, and adding contacts to emails in mu4e
+
+** Functions
+#+begin_src emacs-lisp
+;; Universal Launcher
+(load! "lisp/universal-launcher")
+
+(load! "lisp/pomodoro")
+(load! "lisp/done-refile")
+(load! "lisp/meeting-assistant")
+(load! "lisp/jitsi-meeting")
+(load! "lisp/post-to-blog")
+(load! "lisp/create-daily")
+(load! "lisp/nm")
+(load! "lisp/popup-dirvish-browser")
+(load! "lisp/audio-record")
+(load! "lisp/org-caldav")
+(load! "lisp/download-media")
+;; POSSE posting system
+(load! "lisp/posse/posse-twitter")
+(load! "lisp/gimp-tweet")
+
+;; (load! "lisp/popup-scratch")
+;; (load! "lisp/termux-sms")
+;; (load! "lisp/weather")
+#+end_src emacs-lisp
+
 
 #+begin_src emacs-lisp
 #+end_src emacs-lisp

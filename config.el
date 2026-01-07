@@ -3,26 +3,6 @@
 (load-theme 'compline t)
 (setq doom-font (font-spec :family "Menlo" :size 15))
 
-(map! :leader
-      :desc "Comment line" "-" #'comment-line)
-
-(map! :leader
-      (:prefix ("t" . "toggle")
-       :desc "Toggle eshell split"            "e" #'+eshell/toggle
-       :desc "Toggle line highlight in frame" "h" #'hl-line-mode
-       :desc "Toggle line highlight globally" "H" #'global-hl-line-mode
-       :desc "Toggle line numbers"            "l" #'doom/toggle-line-numbers
-       :desc "Toggle markdown-view-mode"      "m" #'dt/toggle-markdown-view-mode
-       :desc "Toggle truncate lines"          "t" #'toggle-truncate-lines
-       :desc "Toggle treemacs"                "T" #'+treemacs/toggle
-       :desc "Toggle vterm split"             "v" #'+vterm/toggle))
-
-(setq display-line-numbers-type t)
-(map! :leader
-      (:prefix ("o" . "open here")
-       :desc "Open eshell here"    "e" #'+eshell/here
-       :desc "Open vterm here"     "v" #'+vterm/here))
-
 (custom-set-faces
  '(markdown-header-face ((t (:inherit font-lock-function-name-face :weight bold :family "variable-pitch"))))
  '(markdown-header-face-1 ((t (:inherit markdown-header-face :height 1.25))))
@@ -182,3 +162,23 @@
   "Open the custom org-agenda dashboard."
   (interactive)
   (org-agenda nil "d"))
+
+(map! :leader
+      :desc "Comment line" "-" #'comment-line)
+
+(map! :leader
+      (:prefix ("t" . "toggle")
+       :desc "Toggle eshell split"            "e" #'+eshell/toggle
+       :desc "Toggle line highlight in frame" "h" #'hl-line-mode
+       :desc "Toggle line highlight globally" "H" #'global-hl-line-mode
+       :desc "Toggle line numbers"            "l" #'doom/toggle-line-numbers
+       :desc "Toggle markdown-view-mode"      "m" #'dt/toggle-markdown-view-mode
+       :desc "Toggle truncate lines"          "t" #'toggle-truncate-lines
+       :desc "Toggle treemacs"                "T" #'+treemacs/toggle
+       :desc "Toggle vterm split"             "v" #'+vterm/toggle))
+
+(setq display-line-numbers-type t)
+(map! :leader
+      (:prefix ("o" . "open here")
+       :desc "Open eshell here"    "e" #'+eshell/here
+       :desc "Open vterm here"     "v" #'+vterm/here))
