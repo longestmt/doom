@@ -1,8 +1,8 @@
-;;; ../../dotfiles/doom/.config/doom/lisp/create-daily.el -*- lexical-binding: t; -*-
+;;; ~/.doom.d/lisp/create-daily.el -*- lexical-binding: t; -*-
 
-(message "Loaded create-daily.el")
+(message "🔥 create-daily.el LOADED 🔥")
 
-;;;###autoload
+
 (defun create-daily-file ()
   "Create a daily journal file organized by year and week number."
   (interactive)
@@ -42,5 +42,13 @@
     (when (= (buffer-size) 0)
       (yas-expand-snippet
        (with-temp-buffer
-         (insert-file-contents "~/dotfiles/doom/.config/doom/snippets/org-mode/daily")
+         (insert-file-contents "~/snippets/org-mode/daily")
          (buffer-string))))))
+
+;;  (when (= (buffer-size) 0)
+;;    (require 'yasnippet)
+;;      (yas-expand-snippet
+;;       (with-temp-buffer
+;;         (insert-file-contents
+;;         (expand-file-name "org-mode/daily" doom-snippets-dir))
+;;         (buffer-string))))

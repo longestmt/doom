@@ -1,4 +1,5 @@
 #+title: Config
+#+property: header-args:emacs-lisp :tangle yes
 
 * Table of Contents :toc:
 - [[#doom-settings][Doom Settings]]
@@ -32,7 +33,6 @@
 (add-to-list 'custom-theme-load-path "~/.config/doom/themes/")
 (load-theme 'compline t)
 (setq doom-font (font-spec :family "Menlo" :size 15))
-
 #+end_src
 
 * Markdown
@@ -520,7 +520,7 @@ I have various functions in my lisp directory for creating pomodoros, refiling d
 (load! "lisp/meeting-assistant")
 (load! "lisp/jitsi-meeting")
 (load! "lisp/post-to-blog")
-;;(load! "lisp/create-daily")
+(load! "lisp/create-daily")
 (load! "lisp/nm")
 (load! "lisp/popup-dirvish-browser")
 (load! "lisp/audio-record")
