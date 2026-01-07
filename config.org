@@ -8,6 +8,7 @@
   - [[#toggle-markdown-view][Toggle Markdown View]]
 - [[#org-setup][Org Setup]]
   - [[#task-management][Task Management]]
+  - [[#load-daily-directory][Load Daily Directory]]
   - [[#capture-templates][Capture Templates]]
 - [[#org-agenda][Org-Agenda]]
   - [[#calendar][Calendar]]
@@ -75,6 +76,10 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 #+begin_src emacs-lisp
 (setq org-archive-location "~/org/done.org::datetree/")
 #+end_src
+** Load Daily Directory
+#+begin_src emacs-lisp
+(add-load-path! "lisp")
+#+end_src emacs-lisp
 
 ** Capture Templates
 #+begin_src emacs-lisp
@@ -515,7 +520,7 @@ I have various functions in my lisp directory for creating pomodoros, refiling d
 (load! "lisp/meeting-assistant")
 (load! "lisp/jitsi-meeting")
 (load! "lisp/post-to-blog")
-(load! "lisp/create-daily")
+;;(load! "lisp/create-daily")
 (load! "lisp/nm")
 (load! "lisp/popup-dirvish-browser")
 (load! "lisp/audio-record")

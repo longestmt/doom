@@ -1,6 +1,8 @@
 ;;; ../../dotfiles/doom/.config/doom/lisp/create-daily.el -*- lexical-binding: t; -*-
+
 (message "Loaded create-daily.el")
 
+;;;###autoload
 (defun create-daily-file ()
   "Create a daily journal file organized by year and week number."
   (interactive)
