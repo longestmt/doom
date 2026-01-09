@@ -23,6 +23,8 @@
 
 (setq org-archive-location "~/org/done.org::datetree/")
 
+(add-load-path! "lisp")
+
 ;; Mark tasks with a CLOSED timestamp on DONE
 (after! org
 (setq org-log-done 'time)
@@ -163,6 +165,217 @@
   (interactive)
   (org-agenda nil "d"))
 
+(defun +calendar/open-calendar ()
+  "Open calfw calendar with org integration."
+  (interactive)
+  (require 'calfw)
+  (require 'calfw-org)
+
+  ;; Apply Compline faces
+  (custom-set-faces!
+   '(cfw:face-title :foreground "#e0dcd4" :weight bold :height 1.2)
+   '(cfw:face-header :foreground "#b8c4b8" :weight bold)
+   '(cfw:face-sunday :foreground "#cdacac" :weight bold)
+   '(cfw:face-saturday :foreground "#b4c0c8" :weight bold)
+   '(cfw:face-grid :foreground "#282c34")
+   '(cfw:face-today :background "#171a1e" :weight bold)
+   '(cfw:face-select :background "#282c34" :foreground "#f0efeb")
+   '(cfw:face-schedule :foreground "#b8c4b8")
+   '(cfw:face-deadline :foreground "#cdacac"))
+
+  (calfw-org-open-calendar))
+
+;; Prevent byte-compilation of this function
+(put '+calendar/open-calendar 'byte-compile 'byte-compile-file-form-defmumble)
+
+(after! org
+  (defvar my/contacts-file "~/org/roam/contacts.org")
+
+  (defun my/contacts-get-emails ()
+    "Extract all emails from contacts.org."
+    (let (contacts)
+      (with-current-buffer (find-file-noselect my/contacts-file)
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (while (re-search-forward "^\\*+ \\(.+\\)$" nil t)
+           (let ((name (match-string 1))
+                 (email (org-entry-get (point) "EMAIL")))
+             (when email
+               (dolist (addr (split-string email "," t " "))
+                 (push (cons name (string-trim addr)) contacts)))))))
+      (nreverse contacts)))
+
+  (defun my/contacts-complete ()
+    "Complete email addresses from contacts.org."
+    (let* ((end (point))
+           (start (save-excursion
+                    (skip-chars-backward "^:,; \t\n")
+                    (point)))
+           (contacts (my/contacts-get-emails))
+           (collection (mapcar
+                       (lambda (contact)
+                         (format "%s <%s>" (car contact) (cdr contact)))
+                       contacts)))
+      (list start end collection :exclusive 'no)))
+
+  (add-hook 'message-mode-hook
+            (lambda ()
+              (setq-local completion-at-point-functions
+                          (cons 'my/contacts-complete
+                                completion-at-point-functions)))))
+
+(after! mu4e
+  (setq mu4e-compose-complete-addresses nil)
+
+  (defun my/update-last-contacted ()
+    (when (and (derived-mode-p 'mu4e-compose-mode)
+               mu4e-compose-parent-message)
+      (when-let* ((from (mu4e-message-field mu4e-compose-parent-message :from))
+                  (email (if (stringp from) from (cdar from))))
+        (when (stringp email)
+          (with-current-buffer (find-file-noselect my/contacts-file)
+            (save-excursion
+              (goto-char (point-min))
+              (when (search-forward email nil t)
+                (org-back-to-heading)
+                (org-set-property "LAST_CONTACTED"
+                                (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                (save-buffer))))))))
+
+  (add-hook 'mu4e-compose-mode-hook #'my/update-last-contacted))
+
+(use-package! org-roam
+  :defer t
+  :commands (org-roam-node-find
+             org-roam-node-insert
+             org-roam-dailies-goto-today
+             org-roam-buffer-toggle
+             org-roam-db-sync
+             org-roam-capture)  ; Add this
+  :init
+  (setq org-roam-directory "~/org/roam"
+        org-roam-database-connector 'sqlite-builtin
+        org-roam-db-location (expand-file-name "org-roam.db" org-roam-directory)
+        org-roam-v2-ack t)
+
+  :config
+  ;; Don't sync on startup, only when explicitly needed
+  (setq org-roam-db-update-on-save nil)
+
+  ;; Create directory if needed
+  (unless (file-exists-p org-roam-directory)
+    (make-directory org-roam-directory t))
+
+  ;; Only enable autosync AFTER first use
+  (add-hook 'org-roam-find-file-hook
+            (lambda ()
+              (unless org-roam-db-autosync-mode
+                (org-roam-db-autosync-mode 1))))
+
+  ;; CAPTURE TEMPLATES - Human readable filenames
+  (setq org-roam-capture-templates
+        '(("d" "default" plain "%?"
+           :target (file+head "${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: \n\n")
+           :unnarrowed t)
+
+          ("c" "concept" plain "%?"
+           :target (file+head "concepts/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :concept:\n\n")
+           :unnarrowed t)
+
+          ("C" "Contact" plain
+          "* Contact Info
+:PROPERTIES:
+:EMAIL: %^{Email}
+:PHONE: %^{Phone}
+:BIRTHDAY: %^{Birthday (YYYY-MM-DD +1y)}t
+:LOCATION: %^{Location}
+:LAST_CONTACTED: %U
+:END:
+
+ ** Communications
+
+ ** Notes
+ %?"
+ :target (file+head "contacts/${slug}.org"
+ "#+title: ${title}
+ #+filetags: %^{Tags}
+ #+created: %U
+ ")
+ :unnarrowed t)
+
+
+          ("b" "book" plain "%?"
+           :target (file+head "books/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+author: \n#+filetags: :book:\n\n* Summary\n\n* Key Ideas\n\n* Quotes\n\n* Related\n\n")
+           :unnarrowed t)
+
+          ("p" "person" plain "%?"
+           :target (file+head "people/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :person:\n\n* Background\n\n* Key Ideas\n\n* Works\n\n")
+           :unnarrowed t)
+
+          ("t" "tech" plain "%?"
+           :target (file+head "tech/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :tech:\n\n")
+           :unnarrowed t)
+
+          ("T" "theology" plain "%?"
+           :target (file+head "faith/theology/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :theology:faith:\n\n* Doctrine\n\n* Scripture\n\n* Tradition\n\n* Application\n\n")
+           :unnarrowed t)
+
+          ("w" "writing" plain "%?"
+           :target (file+head "writing/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :writing:draft:\n\n")
+           :unnarrowed t)
+
+          ("P" "project" plain "%?"
+           :target (file+head "projects/${slug}.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: ${title}\n#+filetags: :project:private:\n\n* Overview\n\n* Goals\n\n* Status\n\n* Notes\n\n")
+           :unnarrowed t)))
+
+  ;; DAILIES - Clean date format
+  (setq org-roam-dailies-directory "daily/"
+        org-roam-dailies-capture-templates
+        '(("d" "default" entry "* %<%H:%M>: %?"
+           :target (file+head "%<%Y-%m-%d>.org"
+                              ":PROPERTIES:\n:ID:       %(org-id-new)\n:END:\n#+title: %<%Y-%m-%d %A>\n#+filetags: :daily:\n\n"))))
+
+  ;; Enable completion everywhere (for linking)
+  (setq org-roam-completion-everywhere t))
+
+;; org-roam-ui
+(use-package! org-roam-ui
+  :commands (org-roam-ui-mode org-roam-ui-open)
+  :after org-roam
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t
+        org-roam-ui-open-on-start nil))
+
+;; Keybinds for org mode
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-c C-i") #'my/org-insert-image)
+  (define-key org-mode-map (kbd "C-c e") #'org-set-effort)
+  (define-key org-mode-map (kbd "C-c i") #'org-clock-in)
+  (define-key org-mode-map (kbd "C-c o") #'org-clock-out))
+
+;; Insert image into org from selection
+(defun my/org-insert-image ()
+  "Select and insert an image into org file."
+  (interactive)
+  (let ((selected-file (read-file-name "Select image: " "~/Pictures/" nil t)))
+    (when selected-file
+      (insert (format "[[file:%s]]\n" selected-file))
+      (org-display-inline-images))))
+
+(setq display-line-numbers-type t)   ;; Turn line numbers on
+(setq confirm-kill-emacs nil)        ;; Don't confirm on exit
+(setq initial-buffer-choice "~/org/inbox.org") ;; Inbox is initial buffer
+
 (map! :leader
       :desc "Comment line" "-" #'comment-line)
 
@@ -182,3 +395,42 @@
       (:prefix ("o" . "open here")
        :desc "Open eshell here"    "e" #'+eshell/here
        :desc "Open vterm here"     "v" #'+vterm/here))
+
+;; zoom in/out like we do everywhere else.
+(global-set-key (kbd "C-=") 'text-scale-increase)
+(global-set-key (kbd "C--") 'text-scale-decrease)
+
+;; Evil-escape sequence
+(setq-default evil-escape-key-sequence "kj")
+(setq-default evil-escape-delay 0.1)
+
+; Don't move cursor back when exiting insert mode
+(setq evil-move-cursor-back nil)
+;; granular undo with evil mode
+(setq evil-want-fine-undo t)
+;; Enable paste from system clipboard with C-v in insert mode
+(evil-define-key 'insert global-map (kbd "C-v") 'clipboard-yank)
+
+;; Universal Launcher
+(load! "lisp/universal-launcher")
+
+(load! "lisp/pomodoro")
+(load! "lisp/done-refile")
+(load! "lisp/meeting-assistant")
+(load! "lisp/jitsi-meeting")
+(load! "lisp/post-to-blog")
+(load! "lisp/create-daily")
+(load! "lisp/nm")
+(load! "lisp/popup-dirvish-browser")
+(load! "lisp/audio-record")
+;;(load! "lisp/org-caldav")
+(load! "lisp/download-media")
+;; POSSE posting system
+(load! "lisp/posse/posse-twitter")
+(load! "lisp/gimp-tweet")
+
+;; (load! "lisp/popup-scratch")
+;; (load! "lisp/termux-sms")
+;; (load! "lisp/weather")
+
+

@@ -79,7 +79,7 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 ** Load Daily Directory
 #+begin_src emacs-lisp
 (add-load-path! "lisp")
-#+end_src emacs-lisp
+#+end_src
 
 ** Capture Templates
 #+begin_src emacs-lisp
@@ -251,7 +251,7 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 
 ;; Prevent byte-compilation of this function
 (put '+calendar/open-calendar 'byte-compile 'byte-compile-file-form-defmumble)
-#+end_src emacs-lisp
+#+end_src
 
 ** Contacts
 #+begin_src emacs-lisp
@@ -310,7 +310,7 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
                 (save-buffer))))))))
 
   (add-hook 'mu4e-compose-mode-hook #'my/update-last-contacted))
-#+end_src emacs-lisp
+#+end_src
 
 * Org-Roam
 #+begin_src emacs-lisp
@@ -425,7 +425,7 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
         org-roam-ui-follow t
         org-roam-ui-update-on-save t
         org-roam-ui-open-on-start nil))
-#+end_src emacs-lisp
+#+end_src
 
 ** Org Keybinds
 #+begin_src emacs-lisp
@@ -435,7 +435,7 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
   (define-key org-mode-map (kbd "C-c e") #'org-set-effort)
   (define-key org-mode-map (kbd "C-c i") #'org-clock-in)
   (define-key org-mode-map (kbd "C-c o") #'org-clock-out))
-#+end_src emacs-lisp
+#+end_src
 
 ** Custom function for image insertion
 #+begin_src emacs-lisp
@@ -447,14 +447,14 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
     (when selected-file
       (insert (format "[[file:%s]]\n" selected-file))
       (org-display-inline-images))))
-#+end_src emacs-lisp
+#+end_src
 * Sensible Defaults
 #+begin_src emacs-lisp
 (setq display-line-numbers-type t)   ;; Turn line numbers on
 (setq confirm-kill-emacs nil)        ;; Don't confirm on exit
 (setq initial-buffer-choice "~/org/inbox.org") ;; Inbox is initial buffer
 
-#+end_src emacs-lisp
+#+end_src
 
 * Keybindings
 
@@ -491,7 +491,7 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 ;; zoom in/out like we do everywhere else.
 (global-set-key (kbd "C-=") 'text-scale-increase)
 (global-set-key (kbd "C--") 'text-scale-decrease)
-#+end_src emacs-lisp
+#+end_src
 
 ** Evil mode tweaks
 #+begin_src emacs-lisp
@@ -505,7 +505,7 @@ A custom function to toggle between standard 'markdown-mode' and 'markdown-view-
 (setq evil-want-fine-undo t)
 ;; Enable paste from system clipboard with C-v in insert mode
 (evil-define-key 'insert global-map (kbd "C-v") 'clipboard-yank)
-#+end_src emacs-lisp
+#+end_src
 
 * Custom Functions and templates
 I have various functions in my lisp directory for creating pomodoros, refiling done tasks to my global done.org file, and adding contacts to emails in mu4e
@@ -524,7 +524,7 @@ I have various functions in my lisp directory for creating pomodoros, refiling d
 (load! "lisp/nm")
 (load! "lisp/popup-dirvish-browser")
 (load! "lisp/audio-record")
-(load! "lisp/org-caldav")
+;;(load! "lisp/org-caldav")
 (load! "lisp/download-media")
 ;; POSSE posting system
 (load! "lisp/posse/posse-twitter")
@@ -533,8 +533,8 @@ I have various functions in my lisp directory for creating pomodoros, refiling d
 ;; (load! "lisp/popup-scratch")
 ;; (load! "lisp/termux-sms")
 ;; (load! "lisp/weather")
-#+end_src emacs-lisp
+#+end_src
 
 
 #+begin_src emacs-lisp
-#+end_src emacs-lisp
+#+end_src
