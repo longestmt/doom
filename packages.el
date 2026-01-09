@@ -9,6 +9,8 @@
 ;;
 ;; Use 'C-h f package\!' to look up documentation for the `package!' macro.
 
+;; Force use of straight's transient, not built-in
+(package! transient :built-in nil)
 
 ;; To install SOME-PACKAGE from MELPA, ELPA or emacsmirror:
 ;; (package! some-package)

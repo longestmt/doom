@@ -1,5 +1,5 @@
 ;; (setq doom-theme 'compline)
-(add-to-list 'custom-theme-load-path "~/.config/doom/themes/")
+(add-to-list 'custom-theme-load-path "~/.doom.d/themes/")
 (load-theme 'compline t)
 (setq doom-font (font-spec :family "Menlo" :size 15))
 
