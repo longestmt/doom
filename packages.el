@@ -9,6 +9,13 @@
 ;; To install SOME-PACKAGE from MELPA, ELPA or emacsmirror:
                                         ;(package! some-package)
 
+
+;; Unpin transient and magit so we can use newer versions
+(unpin! transient magit)
+;; Force use straight's transient, not built-in
+(package! transient :built-in nil)
+
+
 ;; (package! emmet-mode)
 (package! calfw)
 (package! calfw-org)
