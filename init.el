@@ -15,9 +15,9 @@
 ;;      directory (for easy access to its source code).
 
 ;; Force straight's transient to load first
-(eval-and-compile
-  (require 'straight)
-  (straight-use-package 'transient))
+;;(eval-and-compile
+;;  (require 'straight)
+;;  (straight-use-package 'transient))
 
 (doom! :input
        ;;bidi              ; (tfel ot) thgir etirw uoy gnipleh
