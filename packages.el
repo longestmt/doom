@@ -10,10 +10,7 @@
                                         ;(package! some-package)
 
 
-;; Unpin transient and magit so we can use newer versions
-(unpin! transient magit)
-;; Force use straight's transient, not built-in
-(package! transient :built-in nil)
+(package! transient :built-in t)
 
 
 ;; (package! emmet-mode)
