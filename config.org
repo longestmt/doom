@@ -1,6 +1,18 @@
 #+title: Config
 #+property: header-args:emacs-lisp :tangle yes
 
+* Magit Fix
+Disable automatic git-commit-mode to prevent transient loading errors.
+
+#+begin_src emacs-lisp
+;; Prevent git-commit from auto-loading before transient is ready
+;; This must run early, before doom-first-file-hook fires
+(remove-hook 'doom-first-file-hook #'global-git-commit-mode)
+
+;; Optionally re-enable it after magit fully loads (if you want it)
+;; (add-hook 'magit-mode-hook #'global-git-commit-mode)
+#+end_src
+
 * Table of Contents :toc:
 - [[#doom-settings][Doom Settings]]
   - [[#theming][Theming]]

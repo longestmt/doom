@@ -1,3 +1,10 @@
+;; Prevent git-commit from auto-loading before transient is ready
+;; This must run early, before doom-first-file-hook fires
+(remove-hook 'doom-first-file-hook #'global-git-commit-mode)
+
+;; Optionally re-enable it after magit fully loads (if you want it)
+;; (add-hook 'magit-mode-hook #'global-git-commit-mode)
+
 ;; (setq doom-theme 'compline)
 (add-to-list 'custom-theme-load-path "~/.doom.d/themes/")
 (load-theme 'compline t)
