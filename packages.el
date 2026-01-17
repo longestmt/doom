@@ -9,10 +9,6 @@
 ;; To install SOME-PACKAGE from MELPA, ELPA or emacsmirror:
                                         ;(package! some-package)
 
-
-(package! transient :built-in t)
-
-
 ;; (package! emmet-mode)
 (package! calfw)
 (package! calfw-org)
