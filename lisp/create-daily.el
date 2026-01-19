@@ -3,19 +3,20 @@
   "Create a daily journal file organized by year and week number."
   (interactive)
 
-  (let* ((current-time (current-time))
-         (decoded-time (decode-time current-time))
+  (let* ((days-offset (read-number "Days from today (0=today, 1=tomorrow, -1=yesterday): " 0))
+         (target-time (time-add (current-time) (days-to-time days-offset)))
+         (decoded-time (decode-time target-time))
 
          ;; Get the year (like 2025)
-         (year (format-time-string "%Y" current-time))
+         (year (format-time-string "%Y" target-time))
 
          ;; Get week number (1-53) - using %V instead of %U
          ;; %V gives ISO week number where weeks start on Monday
          ;; This should correctly identify March 24, 2025 as week 13
-         (week-number (string-to-number (format-time-string "%V" current-time)))
+         (week-number (string-to-number (format-time-string "%V" target-time)))
 
          ;; Get friendly date format like "March 24, 2025"
-         (date-string (format-time-string "%B %d, %Y" current-time))
+         (date-string (format-time-string "%B %d, %Y" target-time))
 
          ;; Create folder paths
          (year-dir (expand-file-name year "~/org/journal/"))
@@ -38,6 +39,8 @@
     (when (= (buffer-size) 0)
       (yas-expand-snippet
        (with-temp-buffer
-    ;;     (insert-file-contents "~/dotfiles/doom/.config/doom/snippets/org-mode/daily")
          (insert-file-contents "~/.doom.d/snippets/org-mode/daily")
-         (buffer-string))))))
+         ;; Skip the yasnippet header (lines starting with # until the -- line and any blank lines after)
+         (goto-char (point-min))
+         (when (re-search-forward "^# --\n+" nil t)
+           (buffer-substring (point) (point-max))))))))
